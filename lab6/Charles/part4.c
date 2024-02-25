@@ -3,7 +3,7 @@
 
 int main(void) {
 	
-    volatile int * audio_base = (volatile int *) 0xFF203040;
+	volatile int * audio_base = (volatile int *) 0xFF203040;
 	
 	const float damping_coefficient = 0.2;
 	
@@ -12,13 +12,13 @@ int main(void) {
 	int delay_list_position = 0;
 	
 	for(int i = 0; i < delay_data_size; i++){ // Allocate all null memory for buffers
-
+	
 		int *null_sample = (int *)malloc(2 * sizeof(int));
 		null_sample[0] = 0;
 		null_sample[1] = 0;
 		delay_bufs[i] = null_sample;
 		delay_list[i] = null_sample;
-
+	
 	}
 
 	while (1) {
@@ -53,7 +53,7 @@ int main(void) {
 		
 		delay_list_position = 0;
 		
-    }
+	}
 	
 	// memory cleanup
 	for (int i = 0; i < delay_data_size; i++) {
