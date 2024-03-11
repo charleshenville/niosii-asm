@@ -17,6 +17,7 @@ short int hueToRGB565(float);
 // Drawing Function Prototpes
 void drawIndividualPixel(int, int, short int);
 void drawBresenhamLine(int, int, int, int, short int);
+void drawBox(int, int, short int);
 void clearWholeScreen();
 void tracebackErase();
 
@@ -28,6 +29,10 @@ typedef struct nonblackLine {
 	int x1;
 	int y1;
 } nonblackLine;
+typedef struct nonblackPixel {
+	int x;
+	int y;
+} nonblackPixel;
 
 // Struct to hold the physics-related data
 typedef struct physicalState {
@@ -39,6 +44,7 @@ typedef struct physicalState {
 
 // Allocate an array of lines with max size of NUM_LINES
 nonblackLine nonblackLines [NUM_LINES];
+nonblackPixel nonblackPixels [NUM_LINES];
 physicalState physicalStates [NUM_LINES];
 
 // Global telling us the starting address of the Pixel Buffer
@@ -70,10 +76,12 @@ int main(void) {
 		nonblackLines[i].y0 = 0;
 		nonblackLines[i].x1 = 0;
 		nonblackLines[i].y1 = 0;
+		nonblackPixels[i].x = 1;
+		nonblackPixels[i].y = 1;
 		
 		// Also, set random initial values for position and velocity.
-		physicalStates[i].positionX = rand() % maxX;
-		physicalStates[i].positionY = rand() % maxY;
+		physicalStates[i].positionX = rand() % (maxX-2)+1;
+		physicalStates[i].positionY = rand() % (maxY-2)+1;
 		physicalStates[i].velocityX = rand() % 2;
 		physicalStates[i].velocityY = rand() % 2;
 		
@@ -86,21 +94,23 @@ int main(void) {
 		// Erase the line we drew in the last iteration of the loop.
 		tracebackErase();
 		
+		// Shift all boxes by velocity
 		for (int i = 0; i < NUM_LINES; i++){
 			// Ensure we do not go out of bounds on the next iteration.
-			if (physicalStates[i].positionX == maxX){
+			if (physicalStates[i].positionX == maxX - 1){
 				physicalStates[i].velocityX = -1;
-			} else if (physicalStates[i].positionX == 0) {
+			} else if (physicalStates[i].positionX == 1) {
 				physicalStates[i].velocityX = 1;
 			}
-			if (physicalStates[i].positionY == maxY){
+			if (physicalStates[i].positionY == maxY - 1){
 				physicalStates[i].velocityY = -1;
-			} else if (physicalStates[i].positionY == 0) {
+			} else if (physicalStates[i].positionY == 1) {
 				physicalStates[i].velocityY = 1;
 			}
 			physicalStates[i].positionX += physicalStates[i].velocityX;
 			physicalStates[i].positionY += physicalStates[i].velocityY;
 		}
+		// Connect all of the boxes
 		for (int i = 1; i < NUM_LINES; i++){
 			// Draw the coloured line
 			drawBresenhamLine(physicalStates[i-1].positionX, 
@@ -108,11 +118,16 @@ int main(void) {
 							  physicalStates[i].positionX, 
 							  physicalStates[i].positionY, 
 							  colourVector[i]);
+			// Draw the box
+			drawBox(physicalStates[i].positionX, physicalStates[i].positionY, colourVector[i]);
 			// Document the defining characteristics of the current line.
 			nonblackLines[i].x0 = physicalStates[i-1].positionX;
 			nonblackLines[i].x1 = physicalStates[i].positionX;
 			nonblackLines[i].y0 = physicalStates[i-1].positionY;
 			nonblackLines[i].y1 = physicalStates[i].positionY;
+			// Same for pixels
+			nonblackPixels[i].x = physicalStates[i].positionX;
+			nonblackPixels[i].y = physicalStates[i].positionY;
 		}
 		// Draw the coloured line connecting the first and last
 		drawBresenhamLine(physicalStates[NUM_LINES-1].positionX, 
@@ -120,11 +135,16 @@ int main(void) {
 						  physicalStates[0].positionX, 
 						  physicalStates[0].positionY, 
 						  colourVector[0]);
+		// Draw the box
+		drawBox(physicalStates[0].positionX, physicalStates[0].positionY, colourVector[0]);
 		// Document the defining characteristics of the current line.
 		nonblackLines[0].x0 = physicalStates[NUM_LINES-1].positionX;
 		nonblackLines[0].x1 = physicalStates[0].positionX;
 		nonblackLines[0].y0 = physicalStates[NUM_LINES-1].positionY;
 		nonblackLines[0].y1 = physicalStates[0].positionY;
+		// Same for pixels
+		nonblackPixels[0].x = physicalStates[0].positionX;
+		nonblackPixels[0].y = physicalStates[0].positionY;
 		
 		// Wait for 1/60th of a second (usually) to draw the next frame.
 		waitForVsync();
@@ -202,12 +222,14 @@ void waitForVsync(){
 		
 }
 
-// Erase all the lines we drew
+// Erase all the lines and boxes we drew
 void tracebackErase(){
 	
 	for (int lineIndex = 0; lineIndex < NUM_LINES; lineIndex++){
 		nonblackLine cLine = nonblackLines[lineIndex];
+		nonblackPixel cPx = nonblackPixels[lineIndex];
 		drawBresenhamLine(cLine.x0, cLine.y0, cLine.x1, cLine.y1, 0);
+		drawBox(cPx.x, cPx.y, 0);
 	}
 	
 }
@@ -230,6 +252,16 @@ void clearWholeScreen(){
 
 }
 
+// Draws a nxn box centered at the pixel x,y
+void drawBox(int x, int y, short int colour){
+	int n = 3;
+	int shift = floor(n/2);
+	for(int i = 0; i < n; i++){
+		for(int j = 0; j < n; j++){
+			drawIndividualPixel(x+(i-shift), y+(j-shift), colour);
+		}
+	}
+}
 // Draws a line between the two points specified on screen. 
 void drawBresenhamLine(int x0, int y0, int x1, int y1, short int colour){
 	
